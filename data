@@ -1,0 +1,7 @@
+city,cluster,store,category,orders,delivery_time,breach,rider_cost
+Bangalore,East,Whitefield,Grocery,120,18,0.1,3000
+Bangalore,East,Whitefield,Dairy,80,15,0.08,1800
+Bangalore,East,Marathahalli,Grocery,150,20,0.15,4000
+Bangalore,East,Marathahalli,Pharma,60,22,0.2,2000
+Bangalore,South,HSR,Grocery,200,17,0.07,5000
+Bangalore,South,HSR,Dairy,90,16,0.09,2200
