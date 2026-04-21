@@ -4,13 +4,12 @@ import plotly.express as px
 
 st.set_page_config(layout="wide")
 
+# ---- LOAD DATA (BULLETPROOF) ----
 @st.cache_data
 def load_data():
     try:
-        return pd.read_csv("blinkit_lastmile_data.csv")
-    except Exception as e:
-        st.warning("Using fallback demo dataset (CSV not found)")
-
+        df = pd.read_csv("blinkit_lastmile_data.csv")
+    except Exception:
         data = {
             "city": ["Bangalore"]*8,
             "cluster": ["East","East","East","East","South","South","South","South"],
@@ -21,36 +20,50 @@ def load_data():
             "breach": [0.1,0.08,0.15,0.2,0.07,0.09,0.18,0.11],
             "rider_cost": [3000,1800,4000,2000,5000,2200,2100,3200]
         }
+        df = pd.DataFrame(data)
 
-        return pd.DataFrame(data)
+    return df
+
+# ---- DEFINE DF (IMPORTANT) ----
+df = load_data()
+
+# ---- SAFETY CHECK ----
+if df is None or df.empty:
+    st.error("Data failed to load")
+    st.stop()
 
 # ---- SIDEBAR ----
 st.sidebar.title("Ops Control Panel")
 
-city = st.sidebar.selectbox("City", df["city"].unique())
-cluster = st.sidebar.selectbox("Cluster", df[df.city == city]["cluster"].unique())
-store = st.sidebar.selectbox("Store", df[df.cluster == cluster]["store"].unique())
+city_list = df["city"].dropna().unique()
+city = st.sidebar.selectbox("City", city_list)
+
+cluster_list = df[df["city"] == city]["cluster"].dropna().unique()
+cluster = st.sidebar.selectbox("Cluster", cluster_list)
+
+store_list = df[df["cluster"] == cluster]["store"].dropna().unique()
+store = st.sidebar.selectbox("Store", store_list)
 
 # ---- FILTER ----
 filtered = df[
-    (df.city == city) &
-    (df.cluster == cluster) &
-    (df.store == store)
+    (df["city"] == city) &
+    (df["cluster"] == cluster) &
+    (df["store"] == store)
 ]
 
 # ---- KPIs ----
 total_orders = filtered["orders"].sum()
 avg_time = filtered["delivery_time"].mean()
 breach = filtered["breach"].mean()
-cost_per_order = filtered["rider_cost"].sum() / max(total_orders,1)
+cost_per_order = filtered["rider_cost"].sum() / max(total_orders, 1)
 
 st.title("⚡ Blinkit Last Mile Ops Intelligence")
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Orders", int(total_orders))
-c2.metric("Avg Delivery Time", round(avg_time,1))
-c3.metric("Breach %", round(breach*100,1))
-c4.metric("Cost / Order (₹)", round(cost_per_order,1))
+c2.metric("Avg Delivery Time", round(avg_time, 1))
+c3.metric("Breach %", round(breach * 100, 1))
+c4.metric("Cost / Order (₹)", round(cost_per_order, 1))
 
 # ---- TABS ----
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
@@ -71,10 +84,10 @@ with tab1:
 with tab2:
     st.subheader("Store Comparison")
 
-    store_df = df[df.cluster == cluster].groupby("store").agg({
-        "orders":"sum",
-        "breach":"mean",
-        "rider_cost":"sum"
+    store_df = df[df["cluster"] == cluster].groupby("store").agg({
+        "orders": "sum",
+        "breach": "mean",
+        "rider_cost": "sum"
     }).reset_index()
 
     store_df["cost_per_order"] = store_df["rider_cost"] / store_df["orders"]
@@ -86,13 +99,14 @@ with tab2:
 with tab3:
     st.subheader("Rider Efficiency Score")
 
-    filtered["efficiency_score"] = (
-        (1 - filtered["breach"]) * 0.5 +
-        (1 / filtered["delivery_time"]) * 0.5
+    temp = filtered.copy()
+    temp["efficiency_score"] = (
+        (1 - temp["breach"]) * 0.5 +
+        (1 / temp["delivery_time"]) * 0.5
     )
 
     fig3 = px.scatter(
-        filtered,
+        temp,
         x="delivery_time",
         y="efficiency_score",
         size="orders",
@@ -112,8 +126,6 @@ with tab4:
 
     st.metric("Estimated Rider Earnings (₹/day)", earnings)
 
-    st.write("👉 Use this to balance cost vs retention")
-
 # ---- TAB 5 ----
 with tab5:
     st.subheader("⚠️ Action Recommendations")
@@ -127,4 +139,5 @@ with tab5:
     if avg_time > 20:
         st.info("Slow deliveries → Investigate routing / rider idle time")
 
-    st.success("✔ Suggested Actions Generated")
+    if breach <= 0.12 and cost_per_order <= 40 and avg_time <= 20:
+        st.success("All metrics healthy ✅")
