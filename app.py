@@ -4,12 +4,25 @@ import plotly.express as px
 
 st.set_page_config(layout="wide")
 
-# ---- Load Data ----
 @st.cache_data
 def load_data():
-    return pd.read_csv("blinkit_lastmile_data.csv")
+    try:
+        return pd.read_csv("blinkit_lastmile_data.csv")
+    except Exception as e:
+        st.warning("Using fallback demo dataset (CSV not found)")
 
-df = load_data()
+        data = {
+            "city": ["Bangalore"]*8,
+            "cluster": ["East","East","East","East","South","South","South","South"],
+            "store": ["Whitefield","Whitefield","Marathahalli","Marathahalli","HSR","HSR","BTM","BTM"],
+            "category": ["Grocery","Dairy","Grocery","Pharma","Grocery","Dairy","Pharma","Grocery"],
+            "orders": [120,80,150,60,200,90,70,130],
+            "delivery_time": [18,15,20,22,17,16,21,19],
+            "breach": [0.1,0.08,0.15,0.2,0.07,0.09,0.18,0.11],
+            "rider_cost": [3000,1800,4000,2000,5000,2200,2100,3200]
+        }
+
+        return pd.DataFrame(data)
 
 # ---- SIDEBAR ----
 st.sidebar.title("Ops Control Panel")
