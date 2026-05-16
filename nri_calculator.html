@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NRI Investment Readiness Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    body { background: #0f1117; margin: 0; padding: 0; }
+
+    .slider-thumb::-webkit-slider-thumb {
+      appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: #6366f1;
+      cursor: pointer; border: 2px solid #fff;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.3);
+    }
+    .slider-thumb::-moz-range-thumb {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: #6366f1; cursor: pointer; border: 2px solid #fff;
+    }
+    .slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 2px; outline: none;
+      background: linear-gradient(to right, #6366f1 var(--val, 50%), #2d2f3e var(--val, 50%));
+    }
+
+    .score-ring {
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+    }
+    .score-ring-fill {
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card { background: #16181f; border: 1px solid #1e2028; border-radius: 16px; }
+    .card-inner { background: #1a1d26; border: 1px solid #22252f; border-radius: 12px; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .pill-green { background: rgba(16,185,129,0.12); color: #10b981; }
+    .pill-yellow { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .pill-red { background: rgba(239,68,68,0.12); color: #ef4444; }
+    .pill-blue { background: rgba(99,102,241,0.12); color: #6366f1; }
+
+    .select-custom {
+      background: #1a1d26; border: 1px solid #2d3048; color: #e2e8f0;
+      border-radius: 10px; padding: 10px 14px; width: 100%;
+      font-size: 14px; outline: none; cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236366f1'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+    }
+    .select-custom:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+
+    .input-custom {
+      background: #1a1d26; border: 1px solid #2d3048; color: #e2e8f0;
+      border-radius: 10px; padding: 10px 14px; width: 100%; font-size: 14px;
+      outline: none;
+    }
+    .input-custom:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .input-custom::placeholder { color: #4b5563; }
+
+    .tab-btn {
+      padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; border: none; color: #6b7280;
+      background: transparent;
+    }
+    .tab-btn.active { background: #6366f1; color: #fff; }
+    .tab-btn:not(.active):hover { color: #a5b4fc; background: rgba(99,102,241,0.08); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #fff; border: none; border-radius: 12px; padding: 14px 28px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; width: 100%;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(99,102,241,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .insight-card {
+      border-radius: 12px; padding: 16px;
+      border-left: 3px solid;
+    }
+    .insight-green { background: rgba(16,185,129,0.06); border-color: #10b981; }
+    .insight-yellow { background: rgba(245,158,11,0.06); border-color: #f59e0b; }
+    .insight-red { background: rgba(239,68,68,0.06); border-color: #ef4444; }
+    .insight-blue { background: rgba(99,102,241,0.06); border-color: #6366f1; }
+
+    .bar-container { position: relative; height: 8px; background: #2d2f3e; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+
+    .alloc-item { display: flex; align-items: center; gap: 10px; }
+    .alloc-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    .fade-in { animation: fadeIn 0.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .glow { box-shadow: 0 0 40px rgba(99,102,241,0.12); }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0f1117; }
+    ::-webkit-scrollbar-thumb { background: #2d3048; border-radius: 2px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useCallback, useEffect, useRef } = React;
+
+const COUNTRIES = [
+  { code: "US", name: "United States", currency: "USD", flag: "🇺🇸" },
+  { code: "AE", name: "United Arab Emirates", currency: "AED", flag: "🇦🇪" },
+  { code: "GB", name: "United Kingdom", currency: "GBP", flag: "🇬🇧" },
+  { code: "CA", name: "Canada", currency: "CAD", flag: "🇨🇦" },
+  { code: "AU", name: "Australia", currency: "AUD", flag: "🇦🇺" },
+  { code: "SG", name: "Singapore", currency: "SGD", flag: "🇸🇬" },
+  { code: "DE", name: "Germany", currency: "EUR", flag: "🇩🇪" },
+  { code: "NL", name: "Netherlands", currency: "EUR", flag: "🇳🇱" },
+  { code: "CH", name: "Switzerland", currency: "CHF", flag: "🇨🇭" },
+  { code: "NZ", name: "New Zealand", currency: "NZD", flag: "🇳🇿" },
+  { code: "JP", name: "Japan", currency: "JPY", flag: "🇯🇵" },
+  { code: "HK", name: "Hong Kong", currency: "HKD", flag: "🇭🇰" },
+  { code: "QA", name: "Qatar", currency: "QAR", flag: "🇶🇦" },
+  { code: "KW", name: "Kuwait", currency: "KWD", flag: "🇰🇼" },
+  { code: "SA", name: "Saudi Arabia", currency: "SAR", flag: "🇸🇦" },
+];
+
+const GOALS = [
+  { id: "retirement", label: "Retirement" },
+  { id: "property", label: "Property in India" },
+  { id: "children", label: "Children's Education" },
+  { id: "wealth", label: "Wealth Building" },
+  { id: "return", label: "Planning to Return" },
+  { id: "passive", label: "Passive Income" },
+];
+
+const USD_EQUIV = {
+  USD: 1, AED: 0.27, GBP: 1.27, CAD: 0.74, AUD: 0.65,
+  SGD: 0.74, EUR: 1.09, CHF: 1.11, NZD: 0.60, JPY: 0.0067,
+  HKD: 0.13, QAR: 0.27, KWD: 3.25, SAR: 0.27
+};
+
+function calcScore(inputs) {
+  const {
+    monthlyIncome, monthlySavings, existingInvestments,
+    dependents, emergencyMonths, indiaExposure, goals, currency
+  } = inputs;
+
+  const incomeUSD = monthlyIncome * (USD_EQUIV[currency] || 1);
+  const savingsUSD = monthlySavings * (USD_EQUIV[currency] || 1);
+  const investUSD = existingInvestments * (USD_EQUIV[currency] || 1);
+
+  const savingsRate = incomeUSD > 0 ? savingsUSD / incomeUSD : 0;
+
+  // Emergency fund (0–25)
+  const efScore = Math.min(emergencyMonths / 6, 1) * 25;
+
+  // Savings rate (0–25): 20%+ is great
+  const srScore = Math.min(savingsRate / 0.20, 1) * 25;
+
+  // Existing investments relative to 12mo income (0–20)
+  const invBenchmark = incomeUSD * 12;
+  const invScore = incomeUSD > 0 ? Math.min(investUSD / invBenchmark, 1) * 20 : 5;
+
+  // Dependents penalty (0–15): fewer dependents = better
+  const depScore = Math.max(0, 15 - dependents * 3);
+
+  // Goals alignment (0–15): more goals = more motivated
+  const goalScore = Math.min(goals.length / 3, 1) * 15;
+
+  const raw = efScore + srScore + invScore + depScore + goalScore;
+  const score = Math.round(Math.min(Math.max(raw, 5), 100));
+
+  // Risk profile
+  let risk = "Conservative";
+  if (score >= 75) risk = "Aggressive";
+  else if (score >= 55) risk = "Moderate-Aggressive";
+  else if (score >= 40) risk = "Moderate";
+
+  // India allocation
+  let indiaAlloc = 20;
+  if (score >= 75) indiaAlloc = 40;
+  else if (score >= 55) indiaAlloc = 30;
+  else if (score >= 40) indiaAlloc = 25;
+
+  // Adjust for current exposure
+  if (indiaExposure >= indiaAlloc) {
+    indiaAlloc = Math.min(indiaExposure + 5, 50);
+  }
+
+  // Emergency fund status
+  let efStatus = "insufficient";
+  if (emergencyMonths >= 6) efStatus = "strong";
+  else if (emergencyMonths >= 3) efStatus = "adequate";
+
+  // Currency insight
+  let currencyInsight = null;
+  if (currency === "USD" && indiaExposure < 15) {
+    currencyInsight = { type: "opportunity", msg: "High USD concentration. India-denominated assets offer INR appreciation upside and natural currency diversification." };
+  } else if (currency === "AED" && indiaExposure < 20) {
+    currencyInsight = { type: "opportunity", msg: "AED is USD-pegged — adding INR exposure reduces correlation risk in your portfolio." };
+  } else if (indiaExposure > 50) {
+    currencyInsight = { type: "caution", msg: "Your India exposure is high relative to a globally diversified NRI portfolio. Consider balancing with global equity." };
+  } else {
+    currencyInsight = { type: "balanced", msg: "Your currency mix appears well-distributed for an NRI at your stage." };
+  }
+
+  // Suggested next step
+  let nextStep = "";
+  if (score < 35) {
+    nextStep = "Build your emergency fund to at least 6 months of expenses before committing capital to investments.";
+  } else if (score < 55) {
+    nextStep = "Open an NRE/NRO account and consider a small SIP into an India index fund to start building exposure gradually.";
+  } else if (score < 75) {
+    nextStep = "You're ready for a structured India portfolio. Consider a mix of NRE FD, equity mutual funds, and NPS for tax efficiency.";
+  } else {
+    nextStep = "You have strong investment readiness. Explore PMS, AIF, or direct equity with an NRI-focused wealth advisor.";
+  }
+
+  // Headline
+  let headline = "";
+  if (score < 35) headline = "Focus on your foundation first.";
+  else if (score < 55) headline = "You're on the right path — start small.";
+  else if (score < 75) headline = "You are ready to build a structured India portfolio.";
+  else headline = "You are financially ready for meaningful India exposure.";
+
+  // Allocation breakdown
+  const globalEquity = Math.max(100 - indiaAlloc - 10, 30);
+  const indiaEquity = Math.round(indiaAlloc * 0.6);
+  const indiaDebt = Math.round(indiaAlloc * 0.4);
+  const cash = 10;
+  const allocations = [
+    { label: "Global Equity", pct: globalEquity - cash, color: "#6366f1" },
+    { label: "India Equity", pct: indiaEquity, color: "#10b981" },
+    { label: "India Debt / FD", pct: indiaDebt, color: "#f59e0b" },
+    { label: "Cash / Emergency", pct: cash, color: "#64748b" },
+  ];
+
+  return { score, risk, indiaAlloc, efStatus, currencyInsight, nextStep, headline, allocations, savingsRate };
+}
+
+function Slider({ label, value, min, max, step = 1, onChange, format, hint }) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="mb-5">
+      <div className="flex justify-between items-center mb-2">
+        <label style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500 }}>{label}</label>
+        <span style={{ color: "#e2e8f0", fontSize: 14, fontWeight: 600 }}>
+          {format ? format(value) : value}
+        </span>
+      </div>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="w-full slider-thumb"
+        style={{ "--val": `${pct}%` }}
+      />
+      {hint && <p style={{ color: "#4b5563", fontSize: 11, marginTop: 4 }}>{hint}</p>}
+    </div>
+  );
+}
+
+function ScoreRing({ score }) {
+  const r = 54;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
+
+  let color = "#ef4444";
+  if (score >= 75) color = "#10b981";
+  else if (score >= 55) color = "#6366f1";
+  else if (score >= 40) color = "#f59e0b";
+
+  let label = "Not Ready";
+  if (score >= 75) label = "Ready";
+  else if (score >= 55) label = "Developing";
+  else if (score >= 40) label = "Building";
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+      <svg width={128} height={128} viewBox="0 0 128 128">
+        <circle cx={64} cy={64} r={r} fill="none" stroke="#1e2028" strokeWidth={10} />
+        <circle
+          cx={64} cy={64} r={r} fill="none"
+          stroke={color} strokeWidth={10}
+          strokeDasharray={circ} strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="score-ring"
+          style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)", transformOrigin: "50% 50%", transform: "rotate(-90deg)" }}
+        />
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+            <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+      </svg>
+      <div style={{ position: "absolute", textAlign: "center" }}>
+        <div style={{ fontSize: 28, fontWeight: 700, color: "#f1f5f9", lineHeight: 1 }}>{score}</div>
+        <div style={{ fontSize: 10, color, fontWeight: 600, marginTop: 2, letterSpacing: "0.08em", textTransform: "uppercase" }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+function BarChart({ allocations }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {allocations.map(a => (
+        <div key={a.label}>
+          <div className="alloc-item" style={{ marginBottom: 6 }}>
+            <div className="alloc-dot" style={{ background: a.color }} />
+            <span style={{ color: "#94a3b8", fontSize: 12, flex: 1 }}>{a.label}</span>
+            <span style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 600 }}>{a.pct}%</span>
+          </div>
+          <div className="bar-container">
+            <div className="bar-fill" style={{ width: `${a.pct}%`, background: a.color }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function InsightCard({ type, title, body, icon }) {
+  const cls = { green: "insight-green", yellow: "insight-yellow", red: "insight-red", blue: "insight-blue" }[type] || "insight-blue";
+  const colors = { green: "#10b981", yellow: "#f59e0b", red: "#ef4444", blue: "#6366f1" };
+  return (
+    <div className={`insight-card ${cls}`} style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+        <div>
+          <div style={{ color: colors[type], fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{title}</div>
+          <div style={{ color: "#94a3b8", fontSize: 13, lineHeight: 1.5 }}>{body}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [step, setStep] = useState(0); // 0 = inputs, 1 = results
+  const [inputs, setInputs] = useState({
+    country: "US",
+    currency: "USD",
+    monthlyIncome: 8000,
+    monthlySavings: 1500,
+    existingInvestments: 25000,
+    dependents: 1,
+    emergencyMonths: 4,
+    indiaExposure: 10,
+    goals: ["wealth"],
+  });
+
+  const set = (key, val) => setInputs(p => ({ ...p, [key]: val }));
+
+  const toggleGoal = (id) => {
+    setInputs(p => {
+      const g = p.goals.includes(id) ? p.goals.filter(x => x !== id) : [...p.goals, id];
+      return { ...p, goals: g };
+    });
+  };
+
+  const results = calcScore(inputs);
+  const selectedCountry = COUNTRIES.find(c => c.code === inputs.country) || COUNTRIES[0];
+
+  const efColor = { strong: "green", adequate: "yellow", insufficient: "red" }[results.efStatus];
+  const efIcon = { strong: "✓", adequate: "~", insufficient: "!" }[results.efStatus];
+  const efLabel = { strong: "Emergency fund is strong", adequate: "Emergency fund is adequate", insufficient: "Emergency fund needs attention" }[results.efStatus];
+  const efBody = {
+    strong: `${inputs.emergencyMonths} months of reserves gives you a solid foundation to invest with confidence.`,
+    adequate: `${inputs.emergencyMonths} months is a reasonable buffer, but building to 6+ months before large commitments is advisable.`,
+    insufficient: `${inputs.emergencyMonths} month${inputs.emergencyMonths !== 1 ? "s" : ""} of reserves is below the recommended 6-month minimum for NRIs with cross-border obligations.`
+  }[results.efStatus];
+
+  const currType = results.currencyInsight?.type === "opportunity" ? "blue" : results.currencyInsight?.type === "caution" ? "yellow" : "green";
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0f1117", padding: "0 0 60px" }}>
+      {/* Header */}
+      <div style={{ borderBottom: "1px solid #1e2028", padding: "20px 24px", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8,
+          background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>
+          <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <div>
+          <div style={{ color: "#f1f5f9", fontSize: 14, fontWeight: 600 }}>NRI Investment Readiness</div>
+          <div style={{ color: "#475569", fontSize: 11 }}>EDUCATIONAL TOOL · NOT FINANCIAL ADVICE</div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: "#16181f", borderRadius: 10, padding: 4, border: "1px solid #1e2028" }}>
+          <button className={`tab-btn ${step === 0 ? "active" : ""}`} onClick={() => setStep(0)}>Inputs</button>
+          <button className={`tab-btn ${step === 1 ? "active" : ""}`} onClick={() => setStep(1)}>Results</button>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px" }}>
+        {step === 0 && (
+          <div className="fade-in">
+            <div style={{ marginBottom: 28 }}>
+              <h1 style={{ color: "#f1f5f9", fontSize: 22, fontWeight: 700, margin: 0 }}>Your Investment Profile</h1>
+              <p style={{ color: "#64748b", fontSize: 14, marginTop: 6 }}>Tell us about your financial situation to get your readiness score.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
+              {/* Profile Card */}
+              <div className="card glow" style={{ padding: 20 }}>
+                <div style={{ color: "#6366f1", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>Location & Income</div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, display: "block", marginBottom: 6 }}>Country of Residence</label>
+                  <select
+                    className="select-custom"
+                    value={inputs.country}
+                    onChange={e => {
+                      const c = COUNTRIES.find(x => x.code === e.target.value);
+                      set("country", e.target.value);
+                      if (c) set("currency", c.currency);
+                    }}
+                  >
+                    {COUNTRIES.map(c => (
+                      <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ color: "#94a3b8", fontSize: 12, fontWeight: 500, display: "block", marginBottom: 6 }}>Currency</label>
+                  <div className="input-custom" style={{ color: "#6366f1", fontWeight: 600 }}>
+                    {inputs.currency} · {selectedCountry.flag}
+                  </div>
+                </div>
+
+                <Slider
+                  label="Monthly Income"
+                  value={inputs.monthlyIncome}
+                  min={1000} max={50000} step={500}
+                  onChange={v => set("monthlyIncome", v)}
+                  format={v => `${inputs.currency} ${v.toLocaleString()}`}
+                />
+                <Slider
+                  label="Monthly Savings"
+                  value={inputs.monthlySavings}
+                  min={0} max={20000} step={200}
+                  onChange={v => set("monthlySavings", v)}
+                  format={v => `${inputs.currency} ${v.toLocaleString()}`}
+                  hint={inputs.monthlyIncome > 0 ? `${Math.round((inputs.monthlySavings/inputs.monthlyIncome)*100)}% of income` : ""}
+                />
+              </div>
+
+              {/* Assets Card */}
+              <div className="card" style={{ padding: 20 }}>
+                <div style={{ color: "#10b981", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>Assets & Reserves</div>
+
+                <Slider
+                  label="Existing Investments"
+                  value={inputs.existingInvestments}
+                  min={0} max={500000} step={5000}
+                  onChange={v => set("existingInvestments", v)}
+                  format={v => `${inputs.currency} ${v.toLocaleString()}`}
+                  hint="Total across mutual funds, stocks, retirement accounts"
+                />
+                <Slider
+                  label="Emergency Fund"
+                  value={inputs.emergencyMonths}
+                  min={0} max={24} step={1}
+                  onChange={v => set("emergencyMonths", v)}
+                  format={v => `${v} month${v !== 1 ? "s" : ""}`}
+                  hint="Months of expenses covered by liquid savings"
+                />
+                <Slider
+                  label="Current India Exposure"
+                  value={inputs.indiaExposure}
+                  min={0} max={80} step={5}
+                  onChange={v => set("indiaExposure", v)}
+                  format={v => `${v}%`}
+                  hint="% of your portfolio already in India-based assets"
+                />
+                <Slider
+                  label="Dependents"
+                  value={inputs.dependents}
+                  min={0} max={6} step={1}
+                  onChange={v => set("dependents", v)}
+                  format={v => v === 0 ? "None" : `${v}`}
+                  hint="Family members who depend on your income"
+                />
+              </div>
+
+              {/* Goals Card */}
+              <div className="card" style={{ padding: 20, gridColumn: "1 / -1" }}>
+                <div style={{ color: "#f59e0b", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>Financial Goals</div>
+                <p style={{ color: "#64748b", fontSize: 13, marginBottom: 14 }}>Select all that apply to your situation.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {GOALS.map(g => {
+                    const active = inputs.goals.includes(g.id);
+                    return (
+                      <button
+                        key={g.id}
+                        onClick={() => toggleGoal(g.id)}
+                        style={{
+                          padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
+                          border: `1px solid ${active ? "#6366f1" : "#2d3048"}`,
+                          background: active ? "rgba(99,102,241,0.12)" : "#1a1d26",
+                          color: active ? "#a5b4fc" : "#64748b",
+                          cursor: "pointer", transition: "all 0.2s"
+                        }}
+                      >{g.label}</button>
+                    );
+                  })}
+                </div>
+
+                <button className="btn-primary" style={{ marginTop: 24 }} onClick={() => setStep(1)}>
+                  Calculate My Readiness →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="fade-in">
+            {/* Score + Headline */}
+            <div className="card glow" style={{ padding: 28, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                <ScoreRing score={results.score} />
+                <div style={{ color: "#475569", fontSize: 11, fontWeight: 500 }}>READINESS SCORE</div>
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <span className={`pill pill-${results.score >= 75 ? "green" : results.score >= 55 ? "blue" : results.score >= 40 ? "yellow" : "red"}`}>
+                    {results.risk} Profile
+                  </span>
+                </div>
+                <h2 style={{ color: "#f1f5f9", fontSize: 20, fontWeight: 700, margin: "8px 0" }}>{results.headline}</h2>
+                <p style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+                  Based on your savings rate of <strong style={{ color: "#94a3b8" }}>{Math.round(results.savingsRate * 100)}%</strong>, emergency coverage of <strong style={{ color: "#94a3b8" }}>{inputs.emergencyMonths} months</strong>, and {inputs.goals.length} financial goal{inputs.goals.length !== 1 ? "s" : ""}.
+                </p>
+              </div>
+              <div style={{ minWidth: 140, textAlign: "center" }}>
+                <div style={{ color: "#475569", fontSize: 11, marginBottom: 4 }}>SUGGESTED INDIA ALLOCATION</div>
+                <div style={{ color: "#10b981", fontSize: 40, fontWeight: 700, lineHeight: 1 }}>{results.indiaAlloc}%</div>
+                <div style={{ color: "#475569", fontSize: 12, marginTop: 4 }}>of investable assets</div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginBottom: 16 }}>
+              {/* Insights */}
+              <div className="card" style={{ padding: 20 }}>
+                <div style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>Key Insights</div>
+
+                <InsightCard
+                  type={efColor}
+                  title={efLabel}
+                  body={efBody}
+                  icon={efIcon === "✓" ? "🛡️" : efIcon === "~" ? "⚡" : "⚠️"}
+                />
+
+                <InsightCard
+                  type={currType}
+                  title="Currency Diversification"
+                  body={results.currencyInsight?.msg}
+                  icon="💱"
+                />
+
+                {inputs.dependents >= 3 && (
+                  <InsightCard
+                    type="yellow"
+                    title="High Dependency Load"
+                    body="With multiple dependents, prioritise term insurance and stable instruments before equity exposure."
+                    icon="👨‍👩‍👧"
+                  />
+                )}
+
+                {results.savingsRate < 0.1 && (
+                  <InsightCard
+                    type="red"
+                    title="Low Savings Rate"
+                    body="A savings rate below 10% limits your ability to build and sustain an investment portfolio. Consider a savings audit first."
+                    icon="📉"
+                  />
+                )}
+
+                {results.savingsRate >= 0.25 && (
+                  <InsightCard
+                    type="green"
+                    title="Strong Savings Discipline"
+                    body="A savings rate above 25% puts you well ahead of most NRI investors. Your capital compounding potential is high."
+                    icon="📈"
+                  />
+                )}
+              </div>
+
+              {/* Allocation */}
+              <div className="card" style={{ padding: 20 }}>
+                <div style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 16 }}>Suggested Allocation</div>
+                <BarChart allocations={results.allocations} />
+                <div style={{ marginTop: 20, padding: "12px 14px", background: "#12141b", borderRadius: 10, border: "1px solid #1e2028" }}>
+                  <div style={{ color: "#475569", fontSize: 11, marginBottom: 4 }}>CURRENT INDIA EXPOSURE</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ flex: 1, height: 6, background: "#2d2f3e", borderRadius: 3, overflow: "hidden" }}>
+                      <div style={{ width: `${inputs.indiaExposure}%`, height: "100%", background: inputs.indiaExposure > results.indiaAlloc ? "#ef4444" : "#6366f1", borderRadius: 3, transition: "width 1s" }} />
+                    </div>
+                    <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 600, minWidth: 32 }}>{inputs.indiaExposure}%</span>
+                  </div>
+                  <div style={{ color: "#475569", fontSize: 11, marginTop: 6 }}>
+                    {inputs.indiaExposure < results.indiaAlloc
+                      ? `${results.indiaAlloc - inputs.indiaExposure}pp below target — room to grow`
+                      : inputs.indiaExposure === results.indiaAlloc
+                      ? "At target allocation"
+                      : `${inputs.indiaExposure - results.indiaAlloc}pp above target — consider rebalancing`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Next Step */}
+            <div className="card" style={{ padding: 24, display: "flex", gap: 16, alignItems: "flex-start" }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <svg width={18} height={18} fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ color: "#94a3b8", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 6 }}>Suggested Next Step</div>
+                <p style={{ color: "#e2e8f0", fontSize: 15, lineHeight: 1.6, margin: 0 }}>{results.nextStep}</p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <p style={{ color: "#374151", fontSize: 11, margin: 0 }}>
+                This tool is for educational purposes only. Scores are illustrative and do not constitute financial advice.
+                Consult a SEBI-registered advisor before investing.
+              </p>
+            </div>
+
+            <div style={{ marginTop: 16, textAlign: "center" }}>
+              <button
+                onClick={() => setStep(0)}
+                style={{ background: "none", border: "1px solid #2d3048", color: "#64748b", borderRadius: 8, padding: "8px 20px", fontSize: 13, cursor: "pointer" }}
+              >← Adjust Inputs</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
